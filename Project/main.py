@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 
 from flask_limiter.util import get_remote_address
 from flask_limiter import Limiter
@@ -62,7 +62,7 @@ def send_email_to_user() -> str:
 
 @app.route('/')
 def main():
-    return "<h1> Welcome to the Home Page </h1>"
+    return render_template("main.html")
 
 
 @app.route('/page/<int:page_count>/entries/<int:entry_count>')
