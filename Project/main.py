@@ -20,7 +20,7 @@ app.config['MAIL_USE_SSL'] = False
 mail = Mail(app)
 
 limiter = Limiter(
-    app,
+    app=app,
     key_func=get_remote_address,
     default_limits=["3 per day"]
 )
