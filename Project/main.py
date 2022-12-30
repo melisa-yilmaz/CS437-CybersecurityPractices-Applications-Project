@@ -14,8 +14,8 @@ import sqlite3
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
-import models
 
+from flask_login import UserMixin
 
 app = Flask(__name__)
 
@@ -23,10 +23,38 @@ db = SQLAlchemy()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 db.init_app(app)
 
+class Users(UserMixin):
+    def __init__(self, email, id, password):
+         self.id = id
+         self.email = email
+         self.password = password
+         self.authenticated = False
+    def is_active(self):
+         return self.is_active()
+    def is_anonymous(self):
+         return False
+    def is_authenticated(self):
+         return self.authenticated
+    def is_active(self):
+         return True
+    def get_id(self):
+         return self.id
+
 
 login_manager = LoginManager()
-login_manager.login_view = '/login'
+login_manager.login_view = 'login'
 login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+   conn = database_connection()
+   curs = conn.cursor()
+   curs.execute("SELECT * from users where id = " + user_id)
+   lu = curs.fetchone()
+   if lu is None:
+      return None
+   else:
+      return Users(lu[1], int(lu[0]), lu[2])
 
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 2525
@@ -39,7 +67,7 @@ mail = Mail(app)
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["3 per day"]
+    default_limits=["1000 per day"]
 )
 
 
@@ -81,11 +109,6 @@ def send_email_to_user() -> str:
 def main():
     return render_template("main.html")
 
-@login_manager.user_loader
-def load_user(user_id):
-    # since the user_id is just the primary key of our user table, use it in the query for the user
-    return models.User.query.get(int(user_id))
-
 @app.route('/page/<int:page_count>/entries/<int:entry_count>')
 #@login_required
 def show_users(page_count,entry_count):
@@ -125,15 +148,19 @@ def login_post():
     email = request.form.get('email')
     password = request.form.get('password')
 
-    user = models.User.query.filter_by(email=email).first()
+    conn = database_connection()
+    curs = conn.cursor()
+    curs.execute("SELECT * FROM users WHERE email = \'" + str(email) + "\'")
+    user = curs.fetchall()
 
-    # check if the user actually exists
-    # take the user-supplied password, hash it, and compare it to the hashed password in the database
-    if not user or not user.password == password:
-        return redirect('/login') # if the user doesn't exist or password is wrong, reload the page
+    if not len(user) > 0:
+        return redirect('/login')
 
-    # if the above check passes, then we know the user has the right credentials
-    return redirect('/page/1/entries/20')
+    Us = load_user(user[0][0])
+    if email == Us.email and password == Us.password:
+       return redirect('/page/1/entries/20')
+    else:
+        return redirect('/login')
 
 
 if __name__ == "__main__":
