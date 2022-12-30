@@ -6,7 +6,7 @@ from flask_limiter import Limiter
 from flask_mail import Mail, Message
 from flask_login import login_user
 
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, logout_user
 from flask import Blueprint, render_template, redirect, url_for, request
 
 import json
@@ -21,6 +21,8 @@ app = Flask(__name__)
 
 db = SQLAlchemy()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SECRET_KEY'] = '123123123'
+
 db.init_app(app)
 
 class Users(UserMixin):
@@ -49,7 +51,7 @@ login_manager.init_app(app)
 def load_user(user_id):
    conn = database_connection()
    curs = conn.cursor()
-   curs.execute("SELECT * from users where id = " + user_id)
+   curs.execute("SELECT * from users where id = " + str(user_id))
    lu = curs.fetchone()
    if lu is None:
       return None
@@ -110,9 +112,11 @@ def main():
     return render_template("main.html")
 
 @app.route('/page/<int:page_count>/entries/<int:entry_count>')
+@login_required
 #@login_required
 def show_users(page_count,entry_count):
 
+    print(current_user.email)
     all_users = get_users(page_count, entry_count)
 
     return jsonify(all_users)
@@ -144,7 +148,6 @@ def login():
 
 @app.route('/login', methods=['POST'])
 def login_post():
-       # login code goes here
     email = request.form.get('email')
     password = request.form.get('password')
 
@@ -158,9 +161,15 @@ def login_post():
 
     Us = load_user(user[0][0])
     if email == Us.email and password == Us.password:
-       return redirect('/page/1/entries/20')
+        login_user(Us, remember=False)
+        return redirect('/page/1/entries/20')
     else:
         return redirect('/login')
+
+@app.route('/logout')
+def logout_post():
+    logout_user()
+    return redirect('/login')
 
 
 if __name__ == "__main__":
