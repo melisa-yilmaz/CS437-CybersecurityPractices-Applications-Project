@@ -4,12 +4,29 @@ from flask_limiter.util import get_remote_address
 from flask_limiter import Limiter
 
 from flask_mail import Mail, Message
+from flask_login import login_user
+
+from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect, url_for, request
 
 import json
 import sqlite3
+from flask import Flask
+from flask_login import LoginManager
+from flask_sqlalchemy import SQLAlchemy
+import models
 
 
 app = Flask(__name__)
+
+db = SQLAlchemy()
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+db.init_app(app)
+
+
+login_manager = LoginManager()
+login_manager.login_view = '/login'
+login_manager.init_app(app)
 
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 2525
@@ -64,10 +81,20 @@ def send_email_to_user() -> str:
 def main():
     return render_template("main.html")
 
+@login_manager.user_loader
+def load_user(user_id):
+    # since the user_id is just the primary key of our user table, use it in the query for the user
+    return models.User.query.get(int(user_id))
 
 @app.route('/page/<int:page_count>/entries/<int:entry_count>')
+#@login_required
 def show_users(page_count,entry_count):
 
+    all_users = get_users(page_count, entry_count)
+
+    return jsonify(all_users)
+
+def get_users(page_count, entry_count):
     connection = database_connection()
     sql_query_get_users = "SELECT * FROM users"
     get_users = connection.execute(sql_query_get_users)
@@ -81,12 +108,32 @@ def show_users(page_count,entry_count):
         each_user = {"id": all_users_db[i][0], "email":all_users_db[i][1], "password": all_users_db[i][2]}
         all_users.append(each_user)
 
-    return jsonify(all_users)
+    return all_users
 
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
   return "You have exceeded your daily rate-limit", 429
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def login_post():
+       # login code goes here
+    email = request.form.get('email')
+    password = request.form.get('password')
+
+    user = models.User.query.filter_by(email=email).first()
+
+    # check if the user actually exists
+    # take the user-supplied password, hash it, and compare it to the hashed password in the database
+    if not user or not user.password == password:
+        return redirect('/login') # if the user doesn't exist or password is wrong, reload the page
+
+    # if the above check passes, then we know the user has the right credentials
+    return redirect('/page/1/entries/20')
 
 
 if __name__ == "__main__":
