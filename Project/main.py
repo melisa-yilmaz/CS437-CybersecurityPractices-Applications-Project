@@ -59,23 +59,26 @@ def load_user(user_id):
       return Users(lu[1], int(lu[0]), lu[2])
 
 app.config['MAIL_SERVER']='smtp.gmail.com'
-app.config['MAIL_PORT'] = 2525
-app.config['MAIL_USERNAME'] = '97e041d5e367c7'
-app.config['MAIL_PASSWORD'] = 'cfaf5b99f8bafb'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = '437testmail@gmail.com'
+app.config['MAIL_PASSWORD'] = 'toagpidfulfsrlkh'
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 mail = Mail(app)
 
+
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["1000 per day"]
+    default_limits=["20 per day"]
 )
 
 
 # Connect to database
 def database_connection() -> sqlite3.Connection:
     connection = sqlite3.connect('database.db')
+    #connection = sqlite3.connect('C:\Belgelerim\GitHub\CS437-CybersecurityPractices-Applications-Project\Project\database.db')
+
     return connection
 
 # Get table names from the databse
@@ -97,11 +100,13 @@ def insert_users_to_db() -> None:
         sqlite_insert_query = "INSERT INTO users (id, email, password) VALUES (" + str(i) + ", 'users" + str(i)  + "@gmail.com','123456')"
         cursor.execute(sqlite_insert_query)
     connection.commit()
+    
 
 # Send email to the user when rate limiting occurs
 def send_email_to_user() -> str:
-    msg = Message('Hello from the other side!', sender ='meliisayiilmaz2@mail.com', recipients = ['meliisayiilmaz@gmail.com'])
-    msg.body = "Hey Paul, sending you this email from my Flask app, lmk if it works"
+    
+    msg = Message('Hello from the other side!', sender ='meliisayiilmaz2@mail.com', recipients = ['sinan_cetingoz1998@hotmail.com'])
+    msg.body = "Hey Sinan, sending you this email from my Flask app, lmk if it works"
     mail.send(msg)
     print("YEYY")
     return "Message sent!"
