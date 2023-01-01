@@ -66,10 +66,19 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 mail = Mail(app)
 
+@login_required
+def get_current_user_email():
+    # Get the user ID from the logged-in user's session
+    user_email = current_user.email
+    #print("Current user email", user_email)
+    if user_email:
+        print("Current user email", user_email)
+        return str(user_email)
+    return None
 
 limiter = Limiter(
     app=app,
-    key_func=get_remote_address,
+    key_func=get_current_user_email,
     default_limits=["20 per day"]
 )
 
@@ -118,6 +127,7 @@ def main():
 
 @app.route('/page/<int:page_count>/entries/<int:entry_count>')
 @login_required
+@limiter.limit("3 per day")
 #@login_required
 def show_users(page_count,entry_count):
 
