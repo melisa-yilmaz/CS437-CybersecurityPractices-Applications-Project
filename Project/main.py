@@ -1,21 +1,10 @@
 import local_settings
-from flask import Flask, jsonify, render_template
-
+from flask import Flask, jsonify, render_template, redirect, request
 from flask_limiter import Limiter
-
 from flask_mail import Mail, Message
-from flask_login import login_user
-
-from flask_login import login_required, current_user, logout_user
-from flask import Blueprint, render_template, redirect, url_for, request
-
-import json
+from flask_login import login_user, login_required, current_user, logout_user, LoginManager,  UserMixin
 import sqlite3
-from flask import Flask
-from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
-
-from flask_login import UserMixin
 
 app = Flask(__name__)
 
@@ -26,21 +15,23 @@ app.config['SECRET_KEY'] = '123123123'
 db.init_app(app)
 
 class Users(UserMixin):
-    def __init__(self, email, id, password):
-         self.id = id
-         self.email = email
-         self.password = password
-         self.authenticated = False
-    def is_active(self):
-         return self.is_active()
+    def __init__(self, email, uid, password):
+        self.uid = uid
+        self.email = email
+        self.password = password
+        self.authenticated = False
+
     def is_anonymous(self):
-         return False
+        return False
+
     def is_authenticated(self):
-         return self.authenticated
+        return self.authenticated
+    
     def is_active(self):
-         return True
+        return True
+    
     def get_id(self):
-         return self.id
+        return self.uid
 
 
 login_manager = LoginManager()
@@ -57,15 +48,15 @@ mail = Mail(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-   conn = database_connection()
-   curs = conn.cursor()
-   curs.execute("SELECT * from users where id = " + str(user_id))
-   lu = curs.fetchone()
-   if lu is None:
-      return None
-   else:
-      return Users(lu[1], int(lu[0]), lu[2])
+    conn = database_connection()
+    curs = conn.cursor()
+    curs.execute("SELECT * from users where id = " + str(user_id))
+    lu = curs.fetchone()
+    if lu is None:
+        return None
 
+    return Users(lu[1], int(lu[0]), lu[2])
+        
 
 # Get the email of the from the logged-in user's session
 @login_required
@@ -76,6 +67,7 @@ def get_current_user_email():
         print("Current user email", user_email)
         return str(user_email)
     return None
+
 
 limiter = Limiter(
     app=app,
@@ -112,7 +104,8 @@ def get_table_from_db() -> sqlite3.Connection:
 # Insert users to database
 def insert_users_to_db() -> None:
     # Add users to the database
-    #names = ["Araminta", "Arden", "Azalea", "Birdie", "Blythe", "Clover", "Lilac", "Lavender", "Posey", "Waverly","Birch", "Booker", "Dane", "Garrison", "Hale", "Kit", "Oberon", "Shaw", "Tobin", "Oliver","Charlie","Melisa","Sinan","Kalender","Sinali"]
+    #names = ["Araminta", "Arden", "Azalea", "Birdie", "Blythe", "Clover", "Lilac", "Lavender", "Posey", "Waverly","Birch", "Booker", 
+    # "Dane", "Garrison", "Hale", "Kit", "Oberon", "Shaw", "Tobin", "Oliver","Charlie","Melisa","Sinan","Kalender","Sinali"]
     connection = database_connection()
     cursor = connection.cursor()
     test_mail_insert = "INSERT INTO users (id, email, password) VALUES (5336641108, 'sinan_cetingoz1998@hotmail.com', '123456')"
@@ -157,9 +150,9 @@ def show_users(page_count,entry_count):
 
 
 @app.errorhandler(429)
-def ratelimit_handler(e):
-  send_email_to_user()
-  return "You have exceeded your daily rate-limit", 429
+def ratelimit_handler():
+    send_email_to_user()
+    return "You have exceeded your daily rate-limit", 429
 
 @app.route('/login')
 def login():
@@ -182,8 +175,9 @@ def login_post():
     if email == Us.email and password == Us.password:
         login_user(Us, remember=False)
         return redirect('/page/1/entries/20')
-    else:
-        return redirect('/login')
+
+    return redirect('/login')
+        
 
 @app.route('/logout')
 def logout_post():
