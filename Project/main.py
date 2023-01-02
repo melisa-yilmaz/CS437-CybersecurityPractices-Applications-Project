@@ -1,3 +1,4 @@
+import local_settings
 from flask import Flask, jsonify, render_template
 
 from flask_limiter.util import get_remote_address
@@ -60,8 +61,8 @@ def load_user(user_id):
 
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = '437testmail@gmail.com'
-app.config['MAIL_PASSWORD'] = 'toagpidfulfsrlkh'
+app.config['MAIL_USERNAME'] = local_settings.MAIL_ADDRESS
+app.config['MAIL_PASSWORD'] = local_settings.MAIL_PASSWORD
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 mail = Mail(app)
