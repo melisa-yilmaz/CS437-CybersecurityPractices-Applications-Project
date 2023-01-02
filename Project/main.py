@@ -1,7 +1,6 @@
 import local_settings
 from flask import Flask, jsonify, render_template
 
-from flask_limiter.util import get_remote_address
 from flask_limiter import Limiter
 
 from flask_mail import Mail, Message
@@ -48,6 +47,14 @@ login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
 
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = local_settings.MAIL_ADDRESS
+app.config['MAIL_PASSWORD'] = local_settings.MAIL_PASSWORD
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+mail = Mail(app)
+
 @login_manager.user_loader
 def load_user(user_id):
    conn = database_connection()
@@ -59,35 +66,16 @@ def load_user(user_id):
    else:
       return Users(lu[1], int(lu[0]), lu[2])
 
-app.config['MAIL_SERVER']='smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = local_settings.MAIL_ADDRESS
-app.config['MAIL_PASSWORD'] = local_settings.MAIL_PASSWORD
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-mail = Mail(app)
 
-
+# Get the email of the from the logged-in user's session
 @login_required
 def get_current_user_email():
-    # Get the user ID from the logged-in user's session
     user_email = current_user.email
     #print("Current user email", user_email)
     if user_email:
         print("Current user email", user_email)
         return str(user_email)
     return None
-
-
-# Send email to the user when rate limiting occurs
-def send_email_to_user() -> str:
-    
-    msg = Message('Rate Limiting Applied', sender ='437testmail@gmail.com', recipients = [get_current_user_email()])
-    msg.body = "Hello, this message is sent to let you know there have been large number of requests sent from your account."
-    mail.send(msg)
-    print("E-mail sent.")
-    return "Message sent!"
-
 
 limiter = Limiter(
     app=app,
@@ -96,11 +84,19 @@ limiter = Limiter(
     )
 
 
+# Send email to the user when rate limiting occurs
+def send_email_to_user() -> str:
+    msg = Message('Rate Limiting Applied', sender ='437testmail@gmail.com', recipients = [get_current_user_email()])
+    msg.body = "Hello, this message is sent to let you know there have been large number of requests sent from your account."
+    mail.send(msg)
+    print("E-mail sent.")
+    return "Message sent!"
+
+
 # Connect to database
 def database_connection() -> sqlite3.Connection:
     connection = sqlite3.connect('database.db')
     #connection = sqlite3.connect('C:\Belgelerim\GitHub\CS437-CybersecurityPractices-Applications-Project\Project\database.db')
-
     return connection
 
 
@@ -126,6 +122,26 @@ def insert_users_to_db() -> None:
         cursor.execute(sqlite_insert_query)
     connection.commit()
 
+# Show users based on page and entry count
+def get_users(page_count, entry_count) -> list:
+    connection = database_connection()
+    sql_query_get_users = "SELECT * FROM users"
+    get_users = connection.execute(sql_query_get_users)
+    all_users_db = get_users.fetchall()
+
+    start_index = (page_count-1) * entry_count
+    all_users = []
+
+    if entry_count < 20:
+        for i in range(start_index, start_index+entry_count):
+            each_user = {"id": all_users_db[i][0], "email":all_users_db[i][1], "password": all_users_db[i][2]}
+            all_users.append(each_user)
+    
+    else: 
+        for i in range(start_index,start_index+20):
+            each_user = {"id": all_users_db[i][0], "email":all_users_db[i][1], "password": all_users_db[i][2]}
+            all_users.append(each_user)
+    return all_users
 
 @app.route('/')
 def main():
@@ -133,30 +149,11 @@ def main():
 
 @app.route('/page/<int:page_count>/entries/<int:entry_count>')
 @login_required
-@limiter.limit("3 per day")
-#@login_required
+@limiter.limit("20 per day")
 def show_users(page_count,entry_count):
-
     print(current_user.email)
     all_users = get_users(page_count, entry_count)
-
     return jsonify(all_users)
-
-def get_users(page_count, entry_count):
-    connection = database_connection()
-    sql_query_get_users = "SELECT * FROM users"
-    get_users = connection.execute(sql_query_get_users)
-    all_users_db = get_users.fetchall()
-
-
-    start_index = (page_count-1) * entry_count
-    all_users = []
-
-    for i in range(start_index, start_index+entry_count):
-        each_user = {"id": all_users_db[i][0], "email":all_users_db[i][1], "password": all_users_db[i][2]}
-        all_users.append(each_user)
-
-    return all_users
 
 
 @app.errorhandler(429)
