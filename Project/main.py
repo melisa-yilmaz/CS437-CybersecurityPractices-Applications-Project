@@ -66,6 +66,7 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 mail = Mail(app)
 
+
 @login_required
 def get_current_user_email():
     # Get the user ID from the logged-in user's session
@@ -76,11 +77,22 @@ def get_current_user_email():
         return str(user_email)
     return None
 
+
+# Send email to the user when rate limiting occurs
+def send_email_to_user() -> str:
+    
+    msg = Message('Rate Limiting Applied', sender ='437testmail@gmail.com', recipients = [get_current_user_email()])
+    msg.body = "Hello, this message is sent to let you know there have been large number of requests sent from your account."
+    mail.send(msg)
+    print("E-mail sent.")
+    return "Message sent!"
+
+
 limiter = Limiter(
     app=app,
     key_func=get_current_user_email,
     default_limits=["20 per day"]
-)
+    )
 
 
 # Connect to database
@@ -89,6 +101,7 @@ def database_connection() -> sqlite3.Connection:
     #connection = sqlite3.connect('C:\Belgelerim\GitHub\CS437-CybersecurityPractices-Applications-Project\Project\database.db')
 
     return connection
+
 
 # Get table names from the databse
 def get_table_from_db() -> sqlite3.Connection:
@@ -105,20 +118,12 @@ def insert_users_to_db() -> None:
     #names = ["Araminta", "Arden", "Azalea", "Birdie", "Blythe", "Clover", "Lilac", "Lavender", "Posey", "Waverly","Birch", "Booker", "Dane", "Garrison", "Hale", "Kit", "Oberon", "Shaw", "Tobin", "Oliver","Charlie","Melisa","Sinan","Kalender","Sinali"]
     connection = database_connection()
     cursor = connection.cursor()
+    test_mail_insert = "INSERT INTO users (id, email, password) VALUES (5336641108, 'sinan_cetingoz1998@hotmail.com', '123456')"
+    cursor.execute(test_mail_insert)
     for i in range(20,1000000):
         sqlite_insert_query = "INSERT INTO users (id, email, password) VALUES (" + str(i) + ", 'users" + str(i)  + "@gmail.com','123456')"
         cursor.execute(sqlite_insert_query)
     connection.commit()
-    
-
-# Send email to the user when rate limiting occurs
-def send_email_to_user() -> str:
-    
-    msg = Message('Hello from the other side!', sender ='meliisayiilmaz2@mail.com', recipients = ['sinan_cetingoz1998@hotmail.com'])
-    msg.body = "Hey Sinan, sending you this email from my Flask app, lmk if it works"
-    mail.send(msg)
-    print("YEYY")
-    return "Message sent!"
 
 
 @app.route('/')
@@ -155,6 +160,7 @@ def get_users(page_count, entry_count):
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
+  send_email_to_user()
   return "You have exceeded your daily rate-limit", 429
 
 @app.route('/login')
@@ -189,6 +195,7 @@ def logout_post():
 
 if __name__ == "__main__":
     app.run(port=4000,debug=True)
+
 
 
     
