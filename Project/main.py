@@ -9,8 +9,8 @@ from flask_sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 
 db = SQLAlchemy()
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SECRET_KEY'] = '123123123'
+app.config['SQLALCHEMY_DATABASE_URI'] = local_settings.DB_URI
+app.config['SECRET_KEY'] = local_settings.DB_SECRET_KEY
 
 db.init_app(app)
 
@@ -186,7 +186,7 @@ def logout_post():
 
 
 if __name__ == "__main__":
-    app.run(port=4000,debug=True)
+    app.run(port=4000)
 
 
 
