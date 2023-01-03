@@ -129,8 +129,6 @@ def get_users(page_count, entry_count) -> list:
     get_users = connection.execute(sql_query_get_users)
     all_users_db = get_users.fetchall()
 
-    print(all_users_db)
-
     for i in range(start_index, start_index+entry_count):
         each_user = {"id": all_users_db[i][0], "email":all_users_db[i][1], "password": all_users_db[i][2]}
         all_users.append(each_user)
