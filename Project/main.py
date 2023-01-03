@@ -117,23 +117,24 @@ def insert_users_to_db() -> None:
 
 # Show users based on page and entry count
 def get_users(page_count, entry_count) -> list:
-    connection = database_connection()
-    sql_query_get_users = "SELECT * FROM users"
-    get_users = connection.execute(sql_query_get_users)
-    all_users_db = get_users.fetchall()
+
+    if entry_count > 20:
+        entry_count = 20
 
     start_index = (page_count-1) * entry_count
     all_users = []
-
-    if entry_count < 20:
-        for i in range(start_index, start_index+entry_count):
-            each_user = {"id": all_users_db[i][0], "email":all_users_db[i][1], "password": all_users_db[i][2]}
-            all_users.append(each_user)
     
-    else: 
-        for i in range(start_index,start_index+20):
-            each_user = {"id": all_users_db[i][0], "email":all_users_db[i][1], "password": all_users_db[i][2]}
-            all_users.append(each_user)
+    connection = database_connection()
+    sql_query_get_users = "SELECT * FROM users LIMIT " + str(start_index + entry_count)
+    get_users = connection.execute(sql_query_get_users)
+    all_users_db = get_users.fetchall()
+
+    print(all_users_db)
+
+    for i in range(start_index, start_index+entry_count):
+        each_user = {"id": all_users_db[i][0], "email":all_users_db[i][1], "password": all_users_db[i][2]}
+        all_users.append(each_user)
+
     return all_users
 
 @app.route('/')
