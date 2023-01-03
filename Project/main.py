@@ -7,8 +7,8 @@ import sqlite3
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-
 db = SQLAlchemy()
+
 app.config['SQLALCHEMY_DATABASE_URI'] = local_settings.DB_URI
 app.config['SECRET_KEY'] = local_settings.DB_SECRET_KEY
 
@@ -118,8 +118,7 @@ def insert_users_to_db() -> None:
 # Show users based on page and entry count
 def get_users(page_count, entry_count) -> list:
 
-    if entry_count > 20:
-        entry_count = 20
+    entry_count = min(entry_count, 20)
 
     start_index = (page_count-1) * entry_count
     all_users = []
@@ -149,7 +148,7 @@ def show_users(page_count,entry_count):
 
 
 @app.errorhandler(429)
-def ratelimit_handler():
+def ratelimit_handler(e):
     send_email_to_user()
     return "You have exceeded your daily rate-limit", 429
 
@@ -186,98 +185,3 @@ def logout_post():
 
 if __name__ == "__main__":
     app.run(port=4000)
-
-
-
-    
-
-
-    
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""""
-app = Flask(__name__)
-api = Api(app)
-
-def retrieve_email(user_id):
-    email = ""
-    return email
-
-@app.route("/")
-def index():
-    return "Welcome to the API"
-
-
-@app.route('/email/<user_id>')
-def get_email(user_id):
-    email = retrieve_email(user_id)
-    return jsonify({"email": email})
-
-
-if __name__ == "__main__":
-    app.run()
-
-
-
-class MyApi(Resource):
-    def get(self, name,test):
-        return {"name": name, "test": test}
-
-    def post(self):
-        return {"data": "Posted"}
-
-
-api.add_resource(MyApi, "/helloworld/<string:name>/<int:test>")
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
-
-###############
-
-app = Flask(__name__)
-api = Api(app)
-
-limiter = Limiter(app, key_func=get_remote_address)
-limiter.init_app(app)
-
-api = swagger.docs(Api(app), apiVersion='0.1', api_spec_url = '/docs' )
-
-class MyApi(Resource):
-
-    def get(self, zip):
-        return {
-            "Response": 200,
-            "data":zip
-        }
-
-    
-api.add_resource(MyApi, '/weather/<string:zip>')
-
-if __name__ == "main":
-    app.run(debug=True)
-"""""
